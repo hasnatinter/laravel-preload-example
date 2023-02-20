@@ -1,3 +1,6 @@
+## How to install
+
+
 ## Introduction
 
 OP cache is a feature of PHP where the op codes are cached and directly executed into machine code. After the first execution of the file the code is saved into opcodes and if the file’s opcode is available then it is returned instead of parsing and make AST of PHP code for file.

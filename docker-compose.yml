@@ -10,7 +10,7 @@ services:
     networks:
       - app-tier
     ports:
-      - '9009:9000'
+      - ${PHP_PORT_LOCAL:-9009}:9000
     volumes:
       - ./:/var/www/html/
 
@@ -21,8 +21,8 @@ services:
     networks:
       - app-tier
     ports:
-      - '78:80'
-      - '4435:443'
+      - ${APP_PORT_LOCAL:-70}:80
+      - ${APP_PORT_LOCAL_HTTPS:-4443}:443
     volumes:
       - ./:/var/www/html/
       - ./docker/nginx:/etc/nginx/conf.d
