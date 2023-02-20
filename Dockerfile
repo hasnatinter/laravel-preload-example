@@ -8,6 +8,7 @@ ARG uid
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    vim \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
@@ -24,6 +25,7 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd opcache
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY ./docker/php/php.ini /usr/local/etc/php/conf.d
+COPY ./docker/php/www.conf.default /usr/local/etc/php-fpm.d/www.conf.default
 
 # Create system user to run Composer and Artisan Commands
 RUN useradd -G www-data,root -u $uid -d /home/$user $user
