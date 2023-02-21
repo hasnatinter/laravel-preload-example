@@ -40,7 +40,7 @@ Also note that factors like cache warming will be eliminated by running more tha
 
 Now you will be fully able to appreciate the benefits of opcache in PHP.
 
-###When to use opcache and preloading:
+### When to use opcache and preloading:
 As a rule, use opcache while developing and use with preloading in production.
 
 ## Further reading
