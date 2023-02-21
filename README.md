@@ -1,71 +1,49 @@
 ## How to install
+I am using docker for demonstrating benefits of the opcache preloading.
 
+If you have docker installed then you can get up and running by following.
 
-## Introduction
+1 - Clone repository:
 
-OP cache is a feature of PHP where the op codes are cached and directly executed into machine code. After the first execution of the file the code is saved into opcodes and if the file’s opcode is available then it is returned instead of parsing and make AST of PHP code for file.
+    git clone https://github.com/hasnatinter/laravel-preload-example
+2 - Run docker composer:
 
-<aside>
-💡 PHP OP Cache is a product of zend. The previous cache framework was [APC](https://en.wikipedia.org/wiki/List_of_PHP_accelerators).
+    docker-compose up -d --build 
+3 - Check that the two containers are running:
+    
+    docker-compose ps
 
-</aside>
+4 - Use apache bench (or similar HTTP benchmarking tool) to test the performance:
+**Note:** that I am using 78 port for my application. You can set the port in env file by setting `APP_PORT_LOCAL` variable.
 
-Remember PHP code lifecycle is following
+    ab -n 1000 -c 25 -l http://localhost:78
 
-1. PHP code: The php script file, if an opcode exists then it is directly turned to machine code
-2. Lexical/Token: Makes tokens from code
-3. Parsing: From tokens make AST (abstract syntax trees)
-4. Compilation: Return opcodes for code
-5. Machine code: Zend engine like JVM converts opcode to machine code
+5 - Check performance without preloading:
+Open`docker/php/php.ini`file and comment out preload and preload_user so your files looks like:
 
-<aside>
-💡 OP cache is stored in RAM and by default has 128MB for space available
-</aside>
+    opcache.enable=1
+    ;opcache.preload=/var/www/html/preload.php
+    ;opcache.preload_user=www-data
 
-## Op Cache preloading
+6 - Rebuild docker image by repeating step 2 and test using step 4:
 
-Preloading is an extension of current opcache feature and is designed to be specifically used in production environment only.
+    docker compose up -d --build
+    ab -n 1000 -c 25 -l http://localhost:78
 
-### The Idea 💡
+7 - Observe the difference in performance of two tests. You may want to run benchmark command multiple times and maybe by increasing the number of request to 5000 `-n 5000`
 
-The idea is to to define a preload file where all the classes of a project(or a framework e.g. vendor folder) are to be pre-compiled in opcode and that code is served each request rather than
+8- Run without opcache enabled: To see full benefits of opcache, do try to run once with opcache disabled by setting in `docker/php/php.ini`file
 
-- Without opcache: Compile fie (parse and lex)
-- With opcache: Check if the file was modified. Another overhead is e.g. a file is cached but its dependency is not, then it also has to be cached.
+    opcache.enable=0
 
-Preload will permanently load opcode of a PHP file in memory on server (PHP fpm) startup. From then on any modification will not be effected (since a cached version) is served.
+Also note that factors like cache warming will be eliminated by running more than once.
 
-### A sample PHP script to preload from PHP project like Zend
-```php
-<?php
-function _preload($preload, string $pattern = "/\.php$/", array $ignore = []) {
-	// if array of paths provided
-  if (is_array($preload)) {
-    foreach ($preload as $path) {
-      _preload($path, $pattern, $ignore);
-    }
-  } else if (is_string($preload)) {
-    $path = $preload;
-		// if an array of paths (or files) to be ignored provided
-    if (!in_array($path, $ignore)) {
-			// if directory then 
-      if (is_dir($path)) {
-        if ($dh = opendir($path)) {
-					// preload all files and paths in directory
-          while (($file = readdir($dh)) !== false) {
-            if ($file !== "." && $file !== "..") {
-              _preload($path . "/" . $file, $pattern, $ignore);
-            }
-          }
-          closedir($dh);
-        }
-			// if path and path is PHP ("/\.php$/") then add to preload cache
-      } else if (is_file($path) && preg_match($pattern, $path)) {
-        if (!opcache_compile_file($path)) {
-          trigger_error("Preloading Failed", E_USER_ERROR);
-        }
-      }
-    }
-  }
-}
-```
+Now you will be fully able to appreciate the benefits of opcache in PHP.
+
+###When to use opcache and preloading:
+As a rule, use opcache while developing and use with preloading in production.
+
+## Further reading
+- [Opcache preloading in PHP and how to properly us it in Laravel](https://medium.com/@hasnatinter10/opcache-preloading-in-php-and-how-to-properly-us-it-in-laravel-8fe273356b4e)
+
+- [PHP RFC: Preloading](https://wiki.php.net/rfc/preload)
